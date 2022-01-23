@@ -156,7 +156,6 @@ HEADERS += src/qt/bitcoinaddressvalidator.h \
     src/qt/utilitydialog.h \
     src/qt/walletmodeltransaction.h \
     src/qt/winshutdownmonitor.h \
-    src/alert.h \
     src/amount.h \
     src/arith_uint256.h \
     src/base58.h \
@@ -335,7 +334,6 @@ SOURCES += src/qt/addressbookpage.cpp \
 }
 
 SOURCES += src/addrman.cpp \
-    src/alert.cpp \
     src/bloom.cpp \
     src/chain.cpp \
     src/checkpoints.cpp \

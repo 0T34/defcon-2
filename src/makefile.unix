@@ -115,7 +115,6 @@ xLDFLAGS=$(LDHARDENING) $(LDFLAGS)
 
 OBJS= \
     obj/addrman.o \
-    obj/alert.o \
     obj/bloom.o \
     obj/chain.o \
     obj/checkpoints.o \
@@ -194,7 +193,6 @@ OBJS= \
 
 TESTOBJS= \
     obj-test/test/arith_uint256_tests.o \
-    obj-test/test/alert_tests.o \
     obj-test/test/allocator_tests.o \
     obj-test/test/base32_tests.o \
     obj-test/test/base58_tests.o \
