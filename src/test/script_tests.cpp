@@ -2,9 +2,6 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include "data/script_invalid.json.h"
-#include "data/script_valid.json.h"
-
 #include "core_io.h"
 #include "key.h"
 #include "keystore.h"
@@ -14,10 +11,6 @@
 #include "script/sign.h"
 #include "util.h"
 #include "test/test_bitcoin.h"
-
-#if defined(HAVE_CONSENSUS_LIB)
-#include "script/bitcoinconsensus.h"
-#endif
 
 #include <fstream>
 #include <stdint.h>
@@ -42,15 +35,34 @@ unsigned int ParseScriptFlags(string strFlags);
 string FormatScriptFlags(unsigned int flags);
 
 Array
-read_json(const std::string& jsondata)
+read_json(const std::string& filename)
 {
-    Value v;
+    namespace fs = boost::filesystem;
+    fs::path testFile = fs::current_path() / "test" / "data" / filename;
 
-    if (!read_string(jsondata, v) || v.type() != array_type)
+#ifdef TEST_DATA_DIR
+    if (!fs::exists(testFile))
     {
-        BOOST_ERROR("Parse error.");
+        testFile = fs::path(BOOST_PP_STRINGIZE(TEST_DATA_DIR)) / filename;
+    }
+#endif
+
+    ifstream ifs(testFile.string().c_str(), ifstream::in);
+    Value v;
+    if (!read_stream(ifs, v))
+    {
+        if (ifs.fail())
+            BOOST_ERROR("Cound not find/open " << filename);
+        else
+            BOOST_ERROR("JSON syntax error in " << filename);
         return Array();
     }
+    if (v.type() != array_type)
+    {
+        BOOST_ERROR(filename << " does not contain a json array");
+        return Array();
+    }
+
     return v.get_array();
 }
 
@@ -96,11 +108,6 @@ void DoTest(const CScript& scriptPubKey, const CScript& scriptSig, int flags, bo
     CMutableTransaction tx2 = tx;
     BOOST_CHECK_MESSAGE(VerifyScript(scriptSig, scriptPubKey, flags, MutableTransactionSignatureChecker(&tx, 0), &err) == expect, message);
     BOOST_CHECK_MESSAGE(expect == (err == SCRIPT_ERR_OK), std::string(ScriptErrorString(err)) + ": " + message);
-#if defined(HAVE_CONSENSUS_LIB)
-    CDataStream stream(SER_NETWORK, PROTOCOL_VERSION);
-    stream << tx2;
-    BOOST_CHECK_MESSAGE(bitcoinconsensus_verify_script(begin_ptr(scriptPubKey), scriptPubKey.size(), (const unsigned char*)&stream[0], stream.size(), 0, flags, NULL) == expect,message);
-#endif
 }
 
 void static NegateSignatureS(std::vector<unsigned char>& vchSig) {
@@ -582,8 +589,8 @@ BOOST_AUTO_TEST_CASE(script_build)
     std::set<std::string> tests_bad;
 
     {
-        Array json_good = read_json(std::string(json_tests::script_valid, json_tests::script_valid + sizeof(json_tests::script_valid)));
-        Array json_bad = read_json(std::string(json_tests::script_invalid, json_tests::script_invalid + sizeof(json_tests::script_invalid)));
+        Array json_good = read_json("script_valid.json");
+        Array json_bad = read_json("script_invalid.json");
 
         BOOST_FOREACH(Value& tv, json_good) {
             tests_good.insert(write_string(Value(tv.get_array()), true));
@@ -634,7 +641,7 @@ BOOST_AUTO_TEST_CASE(script_valid)
     // Inner arrays are [ "scriptSig", "scriptPubKey", "flags" ]
     // ... where scriptSig and scriptPubKey are stringified
     // scripts.
-    Array tests = read_json(std::string(json_tests::script_valid, json_tests::script_valid + sizeof(json_tests::script_valid)));
+    Array tests = read_json("script_valid.json");
 
     BOOST_FOREACH(Value& tv, tests)
     {
@@ -660,7 +667,7 @@ BOOST_AUTO_TEST_CASE(script_valid)
 BOOST_AUTO_TEST_CASE(script_invalid)
 {
     // Scripts that should evaluate as invalid
-    Array tests = read_json(std::string(json_tests::script_invalid, json_tests::script_invalid + sizeof(json_tests::script_invalid)));
+    Array tests = read_json("script_invalid.json");
 
     BOOST_FOREACH(Value& tv, tests)
     {

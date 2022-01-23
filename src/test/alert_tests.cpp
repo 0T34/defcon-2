@@ -10,7 +10,6 @@
 #include "chain.h"
 #include "chainparams.h"
 #include "clientversion.h"
-#include "data/alertTests.raw.h"
 
 #include "main.h"
 #include "serialize.h"
@@ -81,7 +80,7 @@
     alert.setSubVer.clear();
     SignAndSave(alert, "test/alertTests");
 }
-#endif
+//#endif
 
 struct ReadAlerts : public TestingSetup
 {
@@ -255,3 +254,4 @@ BOOST_AUTO_TEST_CASE(PartitionAlert)
 }
 
 BOOST_AUTO_TEST_SUITE_END()
+#endif

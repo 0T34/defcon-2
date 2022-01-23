@@ -3,7 +3,6 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include "consensus/validation.h"
-#include "data/sighash.json.h"
 #include "main.h"
 #include "random.h"
 #include "script/interpreter.h"
@@ -168,7 +167,7 @@ BOOST_AUTO_TEST_CASE(sighash_test)
 // Goal: check that SignatureHash generates correct hash
 BOOST_AUTO_TEST_CASE(sighash_from_data)
 {
-    Array tests = read_json(std::string(json_tests::sighash, json_tests::sighash + sizeof(json_tests::sighash)));
+    Array tests = read_json("sighash.json");
 
     BOOST_FOREACH(Value& tv, tests)
     {

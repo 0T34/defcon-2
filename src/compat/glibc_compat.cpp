@@ -2,13 +2,16 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#if defined(HAVE_CONFIG_H)
-#include "config/bitcoin-config.h"
-#endif
-
 #include <cstddef>
 
-#if defined(HAVE_SYS_SELECT_H)
+#include "compat.h"
+
+#if defined(_AIX) || defined(__NOVELL_LIBC__) || \
+    defined(__NetBSD__) || defined(__minix) || \
+    defined(__SYMBIAN32__) || defined(__INTEGRITY) || \
+    defined(ANDROID) || defined(__ANDROID__) || \
+    defined(__OpenBSD__) || \
+   (defined(__FreeBSD_version) && (__FreeBSD_version < 800000))
 #include <sys/select.h>
 #endif
 
@@ -20,10 +23,10 @@ extern "C" void* memcpy(void* a, const void* b, size_t c)
 }
 
 extern "C" void __chk_fail(void) __attribute__((__noreturn__));
-extern "C" FDELT_TYPE __fdelt_warn(FDELT_TYPE a)
+extern "C" long int __fdelt_warn(long int a)
 {
     if (a >= FD_SETSIZE)
         __chk_fail();
     return a / __NFDBITS;
 }
-extern "C" FDELT_TYPE __fdelt_chk(FDELT_TYPE) __attribute__((weak, alias("__fdelt_warn")));
+extern "C" long int __fdelt_chk(long int) __attribute__((weak, alias("__fdelt_warn")));

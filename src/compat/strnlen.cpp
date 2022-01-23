@@ -2,13 +2,9 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#if defined(HAVE_CONFIG_H)
-#include "config/bitcoin-config.h"
-#endif
-
 #include <cstring>
 
-#if HAVE_DECL_STRNLEN == 0
+#if !defined(strnlen)
 size_t strnlen( const char *start, size_t max_len)
 {
     const char *end = (const char *)memchr(start, '\0', max_len);

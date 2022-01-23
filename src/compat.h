@@ -6,10 +6,6 @@
 #ifndef BITCOIN_COMPAT_H
 #define BITCOIN_COMPAT_H
 
-#if defined(HAVE_CONFIG_H)
-#include "config/bitcoin-config.h"
-#endif
-
 #ifdef WIN32
 #ifdef _WIN32_WINNT
 #undef _WIN32_WINNT
@@ -74,7 +70,7 @@ typedef u_int SOCKET;
 #endif
 
 // As Solaris does not have the MSG_NOSIGNAL flag for send(2) syscall, it is defined as 0
-#if !defined(HAVE_MSG_NOSIGNAL) && !defined(MSG_NOSIGNAL)
+#if !defined(MSG_NOSIGNAL)
 #define MSG_NOSIGNAL 0
 #endif
 
@@ -89,9 +85,9 @@ typedef u_int SOCKET;
 #define THREAD_PRIORITY_ABOVE_NORMAL    (-2)
 #endif
 
-#if HAVE_DECL_STRNLEN == 0
+#if defined(strnlen)
 size_t strnlen( const char *start, size_t max_len);
-#endif // HAVE_DECL_STRNLEN
+#endif
 
 bool static inline IsSelectableSocket(SOCKET s) {
 #ifdef WIN32

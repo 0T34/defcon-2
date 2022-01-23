@@ -2,10 +2,6 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#if defined(HAVE_CONFIG_H)
-#include "config/bitcoin-config.h"
-#endif
-
 #include "bitcoingui.h"
 
 #include "clientmodel.h"
@@ -50,7 +46,8 @@
 #include <QTranslator>
 #include <QSslConfiguration>
 
-#if defined(QT_STATICPLUGIN)
+#include <QtCore>
+#if defined(QT_STATIC)
 #include <QtPlugin>
 #if QT_VERSION < 0x050000
 Q_IMPORT_PLUGIN(qcncodecs)
@@ -62,13 +59,7 @@ Q_IMPORT_PLUGIN(qtaccessiblewidgets)
 #if QT_VERSION < 0x050400
 Q_IMPORT_PLUGIN(AccessibleFactory)
 #endif
-#if defined(QT_QPA_PLATFORM_XCB)
-Q_IMPORT_PLUGIN(QXcbIntegrationPlugin);
-#elif defined(QT_QPA_PLATFORM_WINDOWS)
 Q_IMPORT_PLUGIN(QWindowsIntegrationPlugin);
-#elif defined(QT_QPA_PLATFORM_COCOA)
-Q_IMPORT_PLUGIN(QCocoaIntegrationPlugin);
-#endif
 #endif
 #endif
 

@@ -2,14 +2,16 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#if defined(HAVE_CONFIG_H)
-#include "config/bitcoin-config.h"
-#endif
-
 #include <cstddef>
 
-#if defined(HAVE_SYS_SELECT_H)
+#if defined(_AIX) || defined(__NOVELL_LIBC__) || \
+    defined(__NetBSD__) || defined(__minix) || \
+    defined(__SYMBIAN32__) || defined(__INTEGRITY) || \
+    defined(ANDROID) || defined(__ANDROID__) || \
+    defined(__OpenBSD__) || \
+   (defined(__FreeBSD_version) && (__FreeBSD_version < 800000))
 #include <sys/select.h>
+#define HAVE_SYS_SELECT_H
 #endif
 
 extern "C" void* memcpy(void* a, const void* b, size_t c);

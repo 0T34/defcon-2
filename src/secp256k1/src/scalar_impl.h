@@ -12,10 +12,6 @@
 #include "group.h"
 #include "scalar.h"
 
-#if defined HAVE_CONFIG_H
-#include "libsecp256k1-config.h"
-#endif
-
 #if defined(USE_SCALAR_4X64)
 #include "scalar_4x64_impl.h"
 #elif defined(USE_SCALAR_8X32)

@@ -1,0 +1,329 @@
+# Copyright (c) 2009-2010 Satoshi Nakamoto
+# Distributed under the MIT/X11 software license, see the accompanying
+# file COPYING or http://www.opensource.org/licenses/mit-license.php.
+
+# :=0 --> UPnP support turned off by default at runtime
+# :=1 --> UPnP support turned on by default at runtime
+# :=- --> No UPnP support - miniupnp not required
+USE_UPNP:=1
+
+USE_GLIBC_COMPAT:=1
+
+ENABLE_WALLET:=1
+
+LINK:=$(CXX)
+
+DEFS=-DBOOST_SPIRIT_THREADSAFE -D_FILE_OFFSET_BITS=64 -D__STDC_FORMAT_MACROS
+
+DEFS += $(addprefix -I,$(CURDIR) $(CURDIR)/obj $(BOOST_INCLUDE_PATH) $(BDB_INCLUDE_PATH) $(OPENSSL_INCLUDE_PATH))
+LIBS = $(addprefix -L,$(BOOST_LIB_PATH) $(BDB_LIB_PATH) $(OPENSSL_LIB_PATH))
+
+TESTDEFS = -DTEST_DATA_DIR=$(abspath test/data)
+
+LMODE = dynamic
+LMODE2 = dynamic
+ifdef STATIC
+	LMODE = static
+	ifeq (${STATIC}, all)
+		LMODE2 = static
+	endif
+else
+	TESTDEFS += -DBOOST_TEST_DYN_LINK
+endif
+
+# for boost 1.37, add -mt to the boost libraries
+LIBS += \
+ -Wl,-B$(LMODE) \
+   -l boost_system$(BOOST_LIB_SUFFIX) \
+   -l boost_filesystem$(BOOST_LIB_SUFFIX) \
+   -l boost_program_options$(BOOST_LIB_SUFFIX) \
+   -l boost_thread$(BOOST_LIB_SUFFIX) \
+   -l boost_chrono$(BOOST_LIB_SUFFIX) \
+   -l db_cxx$(BDB_LIB_SUFFIX) \
+   -l ssl \
+   -l crypto
+
+TESTLIBS += \
+ -Wl,-B$(LMODE) \
+   -l boost_unit_test_framework$(BOOST_LIB_SUFFIX)
+
+ifndef USE_UPNP
+	override USE_UPNP = -
+endif
+ifneq (${USE_UPNP}, -)
+	LIBS += -l miniupnpc
+	DEFS += -DUSE_UPNP=$(USE_UPNP)
+endif
+ifndef ENABLE_WALLET
+	override ENABLE_WALLET = 1
+endif
+ifneq (${ENABLE_WALLET}, 0)
+	DEFS += -DENABLE_WALLET
+endif
+
+LIBS+= \
+ -Wl,-B$(LMODE2) \
+   -l z \
+   -l dl \
+   -l pthread
+
+
+# Hardening
+# Make some classes of vulnerabilities unexploitable in case one is discovered.
+#
+    # This is a workaround for Ubuntu bug #691722, the default -fstack-protector causes
+    # -fstack-protector-all to be ignored unless -fno-stack-protector is used first.
+    # see: https://bugs.launchpad.net/ubuntu/+source/gcc-4.5/+bug/691722
+    HARDENING=-fno-stack-protector
+
+    # Stack Canaries
+    # Put numbers at the beginning of each stack frame and check that they are the same.
+    # If a stack buffer if overflowed, it writes over the canary number and then on return
+    # when that number is checked, it won't be the same and the program will exit with
+    # a "Stack smashing detected" error instead of being exploited.
+    HARDENING+=-fstack-protector-all -Wstack-protector
+
+    # Make some important things such as the global offset table read only as soon as
+    # the dynamic linker is finished building it. This will prevent overwriting of addresses
+    # which would later be jumped to.
+    LDHARDENING+=-Wl,-z,relro -Wl,-z,now
+
+    # Build position independent code to take advantage of Address Space Layout Randomization
+    # offered by some kernels.
+    # see doc/build-unix.txt for more information.
+    ifdef PIE
+        HARDENING+=-fPIE
+        LDHARDENING+=-pie
+    endif
+
+    # -D_FORTIFY_SOURCE=2 does some checking for potentially exploitable code patterns in
+    # the source such overflowing a statically defined buffer.
+    HARDENING+=-U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=2
+#
+
+
+DEBUGFLAGS=-g
+
+# CXXFLAGS can be specified on the make command line, so we use xCXXFLAGS that only
+# adds some defaults in front. Unfortunately, CXXFLAGS=... $(CXXFLAGS) does not work.
+xCXXFLAGS=-O2 -pthread -Wall -Wextra -Wformat -Wformat-security -Wno-unused-parameter \
+    $(DEBUGFLAGS) $(DEFS) $(HARDENING) $(CXXFLAGS)
+
+# LDFLAGS can be specified on the make command line, so we use xLDFLAGS that only
+# adds some defaults in front. Unfortunately, LDFLAGS=... $(LDFLAGS) does not work.
+xLDFLAGS=$(LDHARDENING) $(LDFLAGS)
+
+OBJS= \
+    obj/addrman.o \
+    obj/alert.o \
+    obj/bloom.o \
+    obj/chain.o \
+    obj/checkpoints.o \
+    obj/init.o \
+    obj/leveldbwrapper.o \
+    obj/main.o \
+    obj/merkleblock.o \
+    obj/miner.o \
+    obj/net.o \
+    obj/noui.o \
+    obj/policy/fees.o \
+    obj/pow.o \
+    obj/rest.o \
+    obj/rpcblockchain.o \
+    obj/rpcmining.o \
+    obj/rpcmisc.o \
+    obj/rpcnet.o \
+    obj/rpcrawtransaction.o \
+    obj/rpcserver.o \
+    obj/script/sigcache.o \
+    obj/timedata.o \
+    obj/txdb.o \
+    obj/txmempool.o \
+    obj/validationinterface.o \
+    obj/amount.o \
+    obj/arith_uint256.o \
+    obj/base58.o \
+    obj/chainparams.o \
+    obj/coins.o \
+    obj/compressor.o \
+    obj/core_read.o \
+    obj/core_write.o \
+    obj/eccryptoverify.o \
+    obj/ecwrapper.o \
+    obj/hash.o \
+    obj/key.o \
+    obj/keystore.o \
+    obj/netbase.o \
+    obj/primitives/block.o \
+    obj/primitives/transaction.o \
+    obj/protocol.o \
+    obj/pubkey.o \
+    obj/scheduler.o \
+    obj/script/interpreter.o \
+    obj/script/script.o \
+    obj/script/script_error.o \
+    obj/script/sign.o \
+    obj/script/standard.o \
+    obj/univalue/univalue.o \
+    obj/univalue/univalue_read.o \
+    obj/univalue/univalue_write.o \
+    obj/support/pagelocker.o \
+    obj/chainparamsbase.o \
+    obj/clientversion.o \
+    obj/compat/glibc_sanity.o \
+    obj/compat/glibcxx_sanity.o \
+    obj/compat/strnlen.o \
+    obj/random.o \
+    obj/rpcprotocol.o \
+    obj/support/cleanse.o \
+    obj/sync.o \
+    obj/uint256.o \
+    obj/util.o \
+    obj/utilmoneystr.o \
+    obj/utilstrencodings.o \
+    obj/utiltime.o \
+    obj/crypto/hmac_sha256.o \
+    obj/crypto/hmac_sha512.o \
+    obj/crypto/ripemd160.o \
+    obj/crypto/sha1.o \
+    obj/crypto/sha256.o \
+    obj/crypto/sha512.o \
+    obj/rpcclient.o \
+    leveldb/libleveldb.a \
+    secp256k1/libsecp256k1.a
+
+TESTOBJS= \
+    obj-test/test/arith_uint256_tests.o \
+    obj-test/test/alert_tests.o \
+    obj-test/test/allocator_tests.o \
+    obj-test/test/base32_tests.o \
+    obj-test/test/base58_tests.o \
+    obj-test/test/base64_tests.o \
+    obj-test/test/bip32_tests.o \
+    obj-test/test/bloom_tests.o \
+    obj-test/test/checkblock_tests.o \
+    obj-test/test/Checkpoints_tests.o \
+    obj-test/test/coins_tests.o \
+    obj-test/test/compress_tests.o \
+    obj-test/test/crypto_tests.o \
+    obj-test/test/DoS_tests.o \
+    obj-test/test/getarg_tests.o \
+    obj-test/test/hash_tests.o \
+    obj-test/test/key_tests.o \
+    obj-test/test/main_tests.o \
+    obj-test/test/mempool_tests.o \
+    obj-test/test/miner_tests.o \
+    obj-test/test/mruset_tests.o \
+    obj-test/test/multisig_tests.o \
+    obj-test/test/netbase_tests.o \
+    obj-test/test/pmt_tests.o \
+    obj-test/test/policyestimator_tests.o \
+    obj-test/test/pow_tests.o \
+    obj-test/test/reverselock_tests.o \
+    obj-test/test/rpc_tests.o \
+    obj-test/test/sanity_tests.o \
+    obj-test/test/scheduler_tests.o \
+    obj-test/test/script_P2SH_tests.o \
+    obj-test/test/script_tests.o \
+    obj-test/test/scriptnum_tests.o \
+    obj-test/test/serialize_tests.o \
+    obj-test/test/sighash_tests.o \
+    obj-test/test/sigopcount_tests.o \
+    obj-test/test/skiplist_tests.o \
+    obj-test/test/test_bitcoin.o \
+    obj-test/test/timedata_tests.o \
+    obj-test/test/transaction_tests.o \
+    obj-test/test/uint256_tests.o \
+    obj-test/test/univalue_tests.o \
+    obj-test/test/util_tests.o
+
+ifneq (${USE_GLIBC_COMPAT}, 0)
+    OBJS+=obj/compat/glibc_compat.o
+endif
+ifneq (${ENABLE_WALLET}, 0)
+OBJS+= \
+    obj/wallet/crypter.o \
+    obj/wallet/db.o \
+    obj/wallet/rpcdump.o \
+    obj/wallet/rpcwallet.o \
+    obj/wallet/wallet.o \
+    obj/wallet/wallet_ismine.o \
+    obj/wallet/walletdb.o
+
+TESTOBJS+= \
+    obj-test/test/accounting_tests.o \
+    obj-test/test/rpc_wallet_tests.o \
+    obj-test/wallet/test/wallet_tests.o
+endif
+
+all: bitcoind bitcoin-cli bitcoin-tx
+
+test check: test_bitcoin FORCE
+	./test_bitcoin
+
+#
+# LevelDB support
+#
+MAKEOVERRIDES =
+LIBS += $(CURDIR)/leveldb/libleveldb.a $(CURDIR)/leveldb/libmemenv.a
+DEFS += $(addprefix -I,$(CURDIR)/leveldb/include)
+DEFS += $(addprefix -I,$(CURDIR)/leveldb/helpers)
+leveldb/libleveldb.a:
+	@echo "Building LevelDB ..." && cd leveldb && $(MAKE) CC=$(CC) CXX=$(CXX) OPT="$(xCXXFLAGS)" libleveldb.a libmemenv.a && cd ..
+
+#
+# libsecp256k1 support
+#
+MAKEOVERRIDES =
+LIBS += $(CURDIR)/secp256k1/libsecp256k1.a
+DEFS += $(addprefix -I,$(CURDIR)/secp256k1/include)
+DEFS += $(addprefix -I,$(CURDIR)/secp256k1/src)
+secp256k1/libsecp256k1.a:
+	@echo "Building secp256k1 ..." && cd secp256k1 && $(MAKE) CC=$(CC) CXX=$(CXX) OPT="$(xCXXFLAGS)" && cd ..
+
+# auto-generated dependencies:
+-include obj/*.P
+-include obj-test/*.P
+
+obj/build.h: FORCE
+	/bin/sh ../share/genbuild.sh obj/build.h
+clientversion.cpp: obj/build.h
+DEFS += -DHAVE_BUILD_INFO
+
+obj/%.o: %.cpp
+	$(CXX) -c $(xCXXFLAGS) -MMD -MF $(@:%.o=%.d) -o $@ $<
+	@cp $(@:%.o=%.d) $(@:%.o=%.P); \
+	  sed -e 's/#.*//' -e 's/^[^:]*: *//' -e 's/ *\\$$//' \
+	      -e '/^$$/ d' -e 's/$$/ :/' < $(@:%.o=%.d) >> $(@:%.o=%.P); \
+	  rm -f $(@:%.o=%.d)
+
+bitcoind: $(OBJS:obj/%=obj/%) obj/bitcoind.o
+	$(LINK) $(xCXXFLAGS) -o $@ $^ $(xLDFLAGS) $(LIBS)
+
+bitcoin-cli: $(OBJS:obj/%=obj/%) obj/bitcoin-cli.o
+	$(LINK) $(xCXXFLAGS) -o $@ $^ $(xLDFLAGS) $(LIBS)
+
+bitcoin-tx: $(OBJS:obj/%=obj/%) obj/bitcoin-tx.o
+	$(LINK) $(xCXXFLAGS) -o $@ $^ $(xLDFLAGS) $(LIBS)
+
+obj-test/%.o: %.cpp
+	$(CXX) -c $(TESTDEFS) $(xCXXFLAGS) -MMD -MF $(@:%.o=%.d) -o $@ $<
+	@cp $(@:%.o=%.d) $(@:%.o=%.P); \
+	  sed -e 's/#.*//' -e 's/^[^:]*: *//' -e 's/ *\\$$//' \
+	      -e '/^$$/ d' -e 's/$$/ :/' < $(@:%.o=%.d) >> $(@:%.o=%.P); \
+	  rm -f $(@:%.o=%.d)
+
+test_bitcoin: $(TESTOBJS) $(filter-out obj/init.o,$(OBJS:obj/%=obj/%))
+	$(LINK) $(xCXXFLAGS) -o $@ $(LIBPATHS) $^ $(TESTLIBS) $(xLDFLAGS) $(LIBS)
+
+clean:
+	-rm -f bitcoind bitcoin-cli bitcoin-tx test_bitcoin
+	-find obj/ -name "*.o" -type f -delete
+	-find obj-test/ -name "*.o" -type f -delete
+	-find obj/ -name "*.P" -type f -delete
+	-find obj-test/ -name "*.P" -type f -delete
+	-rm -f obj/build.h
+	-cd leveldb && $(MAKE) clean || true
+	-cd secp256k1 && $(MAKE) clean || true
+
+FORCE:

@@ -7,9 +7,6 @@
 #ifndef _SECP256K1_UTIL_H_
 #define _SECP256K1_UTIL_H_
 
-#if defined HAVE_CONFIG_H
-#include "libsecp256k1-config.h"
-#endif
 
 #include <stdlib.h>
 #include <stdint.h>
