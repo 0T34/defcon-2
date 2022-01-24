@@ -1,2 +1,4 @@
-*
+*.o
+*.P
+build.h
 !.gitignore
