@@ -198,9 +198,6 @@ void WalletView::gotoVerifyMessageTab(QString addr)
     signVerifyMessageDialog->setAttribute(Qt::WA_DeleteOnClose);
     signVerifyMessageDialog->setModel(walletModel);
     signVerifyMessageDialog->showTab_VM(true);
-
-    if (!addr.isEmpty())
-        signVerifyMessageDialog->setAddress_VM(addr);
 }
 
 bool WalletView::handlePaymentRequest(const SendCoinsRecipient& recipient)

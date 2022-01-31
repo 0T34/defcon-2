@@ -324,10 +324,10 @@ Value verifymessage(const Array& params, bool fHelp)
 {
     if (fHelp || params.size() != 3)
         throw runtime_error(
-            "verifymessage \"bitcoinaddress\" \"signature\" \"message\"\n"
+            "verifymessage \"pubkey\" \"signature\" \"message\"\n"
             "\nVerify a signed message\n"
             "\nArguments:\n"
-            "1. \"bitcoinaddress\"  (string, required) The bitcoin address to use for the signature.\n"
+            "1. \"pubkey\"          (string, required) Public key of the address used to sign the message (see signmessage).\n"
             "2. \"signature\"       (string, required) The signature provided by the signer in base 64 encoding (see signmessage).\n"
             "3. \"message\"         (string, required) The message that was signed.\n"
             "\nResult:\n"
@@ -338,24 +338,16 @@ Value verifymessage(const Array& params, bool fHelp)
             "\nCreate the signature\n"
             + HelpExampleCli("signmessage", "\"1D1ZrZNe3JUo7ZycKEYQQiQAWd9y54F4XZ\" \"my message\"") +
             "\nVerify the signature\n"
-            + HelpExampleCli("verifymessage", "\"1D1ZrZNe3JUo7ZycKEYQQiQAWd9y54F4XZ\" \"signature\" \"my message\"") +
+            + HelpExampleCli("verifymessage", "\"03c936f3467ab196bc140cd09896e774a1ee841a90bed7779aabb9e652982f0640\" \"signature\" \"my message\"") +
             "\nAs json rpc\n"
-            + HelpExampleRpc("verifymessage", "\"1D1ZrZNe3JUo7ZycKEYQQiQAWd9y54F4XZ\", \"signature\", \"my message\"")
+            + HelpExampleRpc("verifymessage", "\"03c936f3467ab196bc140cd09896e774a1ee841a90bed7779aabb9e652982f0640\", \"signature\", \"my message\"")
         );
 
     LOCK(cs_main);
 
-    string strAddress  = params[0].get_str();
+    string strPubkey   = params[0].get_str();
     string strSign     = params[1].get_str();
     string strMessage  = params[2].get_str();
-
-    CBitcoinAddress addr(strAddress);
-    if (!addr.IsValid())
-        throw JSONRPCError(RPC_TYPE_ERROR, "Invalid address");
-
-    CKeyID keyID;
-    if (!addr.GetKeyID(keyID))
-        throw JSONRPCError(RPC_TYPE_ERROR, "Address does not refer to key");
 
     bool fInvalid = false;
     vector<unsigned char> vchSig = DecodeBase64(strSign.c_str(), &fInvalid);
@@ -367,11 +359,11 @@ Value verifymessage(const Array& params, bool fHelp)
     ss << strMessageMagic;
     ss << strMessage;
 
-    CPubKey pubkey;
-    if (!pubkey.RecoverCompact(ss.GetHash(), vchSig))
-        return false;
+    CPubKey pubkey(ParseHex(strPubkey));
+    if (!pubkey.IsValid())
+        throw runtime_error(" Invalid public key: "+strPubkey);
 
-    return (pubkey.GetID() == keyID);
+    return (pubkey.Verify(ss.GetHash(), vchSig));
 }
 
 Value setmocktime(const Array& params, bool fHelp)

@@ -192,21 +192,21 @@ BOOST_AUTO_TEST_CASE(rpc_wallet)
      * 	signmessage + verifymessage
      *********************************/
     BOOST_CHECK_NO_THROW(retValue = CallRPC("signmessage " + demoAddress.ToString() + " mymessage"));
+    string signStr = find_value(retValue.get_obj(), "signature").get_str();
+    string pubKeyStr = find_value(retValue.get_obj(), "pubkey").get_str();
     BOOST_CHECK_THROW(CallRPC("signmessage"), runtime_error);
     /* Should throw error because this address is not loaded in the wallet */
     BOOST_CHECK_THROW(CallRPC("signmessage 1QFqqMUD55ZV3PJEJZtaKCsQmjLT6JkjvJ mymessage"), runtime_error);
 
     /* missing arguments */
-    BOOST_CHECK_THROW(CallRPC("verifymessage " + demoAddress.ToString()), runtime_error);
-    BOOST_CHECK_THROW(CallRPC("verifymessage " + demoAddress.ToString() + " " + retValue.get_str()), runtime_error);
-    /* Illegal address */
-    BOOST_CHECK_THROW(CallRPC("verifymessage 1D1ZrZNe3JUo7ZycKEYQQiQAWd9y54F4X " + retValue.get_str() + " mymessage"), runtime_error);
-    /* wrong address */
-    BOOST_CHECK(CallRPC("verifymessage 1D1ZrZNe3JUo7ZycKEYQQiQAWd9y54F4XZ " + retValue.get_str() + " mymessage").get_bool() == false);
-    /* Correct address and signature but wrong message */
-    BOOST_CHECK(CallRPC("verifymessage " + demoAddress.ToString() + " " + retValue.get_str() + " wrongmessage").get_bool() == false);
-    /* Correct address, message and signature*/
-    BOOST_CHECK(CallRPC("verifymessage " + demoAddress.ToString() + " " + retValue.get_str() + " mymessage").get_bool() == true);
+    BOOST_CHECK_THROW(CallRPC("verifymessage " + pubKeyStr), runtime_error);
+    BOOST_CHECK_THROW(CallRPC("verifymessage " + pubKeyStr + " " + signStr), runtime_error);
+    /* wrong pubkey */
+    BOOST_CHECK(CallRPC("verifymessage 03c936f3467ab196bc140cd09896e774a1ee841a90bed7779aabb9e652982f0640 " + signStr + " mymessage").get_bool() == false);
+    /* Correct pubkey and signature but wrong message */
+    BOOST_CHECK(CallRPC("verifymessage " + pubKeyStr + " " + signStr + " wrongmessage").get_bool() == false);
+    /* Correct pubkey, message and signature*/
+    BOOST_CHECK(CallRPC("verifymessage " + pubKeyStr + " " + signStr + " mymessage").get_bool() == true);
 
     /*********************************
      * 		getaddressesbyaccount

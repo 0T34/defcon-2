@@ -500,6 +500,7 @@ Value signmessage(const Array& params, bool fHelp)
             "1. \"bitcoinaddress\"  (string, required) The bitcoin address to use for the private key.\n"
             "2. \"message\"         (string, required) The message to create a signature of.\n"
             "\nResult:\n"
+            "\"pubkey\"             (string) Public key of the provided bitcoin address, required later to verify the message\n"
             "\"signature\"          (string) The signature of the message encoded in base 64\n"
             "\nExamples:\n"
             "\nUnlock the wallet for 30 seconds\n"
@@ -507,7 +508,7 @@ Value signmessage(const Array& params, bool fHelp)
             "\nCreate the signature\n"
             + HelpExampleCli("signmessage", "\"1D1ZrZNe3JUo7ZycKEYQQiQAWd9y54F4XZ\" \"my message\"") +
             "\nVerify the signature\n"
-            + HelpExampleCli("verifymessage", "\"1D1ZrZNe3JUo7ZycKEYQQiQAWd9y54F4XZ\" \"signature\" \"my message\"") +
+            + HelpExampleCli("verifymessage", "\"03c936f3467ab196bc140cd09896e774a1ee841a90bed7779aabb9e652982f0640\" \"signature\" \"my message\"") +
             "\nAs json rpc\n"
             + HelpExampleRpc("signmessage", "\"1D1ZrZNe3JUo7ZycKEYQQiQAWd9y54F4XZ\", \"my message\"")
         );
@@ -531,15 +532,22 @@ Value signmessage(const Array& params, bool fHelp)
     if (!pwalletMain->GetKey(keyID, key))
         throw JSONRPCError(RPC_WALLET_ERROR, "Private key not available");
 
+    Object result;
+
+    CPubKey pubKey = key.GetPubKey();
+    result.push_back(Pair("pubkey", HexStr(pubKey.begin(), pubKey.end())));
+
     CHashWriter ss(SER_GETHASH, 0);
     ss << strMessageMagic;
     ss << strMessage;
 
     vector<unsigned char> vchSig;
-    if (!key.SignCompact(ss.GetHash(), vchSig))
+    if (!key.Sign(ss.GetHash(), vchSig))
         throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Sign failed");
 
-    return EncodeBase64(&vchSig[0], vchSig.size());
+    result.push_back(Pair("signature", EncodeBase64(&vchSig[0], vchSig.size())));
+
+    return result;
 }
 
 Value getreceivedbyaddress(const Array& params, bool fHelp)
